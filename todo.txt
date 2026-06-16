@@ -1,0 +1,198 @@
+CPU
+
+{ I1, I2, I3, I4 }  - O(4)
+{ I1, I2 .... I100} -  O(100)
+{ I1, I2, ..... I10000} - O(10000)
+{ I1, I2, ...... I100000}  - O(100000)
+
+{I1, I2, ....... In} = O(n)
+
+
+{I1, I2, ...... I10}  - O(10)
+     {I1, I2, ... I10} - O(10)
+OTC = O(10) * O(10) = O(100)
+
+
+{I1, I2, .... I100}
+    {I1, I2, ... I100}
+OTC = O(100) * O(100) = O(10000)
+
+{I1, I2 ... In}
+    {I1, I2 .... In}
+OTC = O(n) * O(n) = O(n^2)
+
+for(int i = 0; i < 10; i++) {} - O(10)
+
+for(int i = 0; i < 1000; i++) {} - O(1000)
+
+for(int i = 0; i < n; i++) {} - O(n)
+
+
+for (int row = 0; row < 10; row++) {
+    for (int col = 0; col < 10; col++)
+} 
+
+OTC = O(10) * O(10) = O(100)
+
+
+for (int row = 0; row < rows; row++) {
+    for (int col = 0; col < cols; col++)
+}
+
+OTC = O(number_of_rows) * O(number_of_cols)
+
+
+
+for (int row = 0; row < rows; row++) { - o(no_of_rows)
+    for (int col = 0; col < cols; col++) - O(no_of_cols)
+}
+
+for (int i = 0; i < 10000; i++) { - O(10000)
+    println(i)
+}
+
+OTC = O(no_of_rows) * O(no_of_cols) + O(10000) = O(no_of_rows) * O(no_of_cols)
+
+
+
+for(int i = 0; i < n; i++) {
+    for (int j = 0; j < 10000; j++) {
+
+    }
+}
+
+OTC  =  O(n) * O(1000) = O(n)
+
+OTC = O(no_of_iteratios) * O(amount of time taken to complete work inside the loop)
+
+for (int row = 0; row < rows; row++) { O(no_of_rows)
+    for (int col = 0; col < cols; col++) { - O(no_of_cols) 
+        println(10);
+        println(11);
+    }
+}
+OTC = O(no_of_rows) * O(no_of_cols)
+
+for (int i = 0; i < n; i++) {
+    println(i + 1)
+    int res = i + 1
+    println(res + 1)
+}
+OTC = O(n) * O(3) = O(n)
+
+
+for (int i = 0; i < 10; i++) {
+
+}
+
+OTC = O(10) = O(1) = constant amount of time 
+
+n = 10
+
+O(1) => 1
+O(n) => 10
+O(n^2) => O(100)
+
+
+O(logn)
+
+log 8 = 3
+log 1024 = 10
+
+nums = [1, 2, 3, 4, 5] => T = 4
+
+Linear search
+for (int i = 0; i < nums.size(); i++) { - O(no_of_elements)
+    if (nums[i] == target) {
+        return True
+    }
+}
+
+
+Binary search 
+[1,2,3,4,5] => T = 4
+
+100
+50
+25
+12
+6
+3
+1
+
+n
+n/2
+n/4
+n/8
+n/16
+...
+
+
+n / 2 ^ k = 1
+
+n = 2 ^ k
+k = logn
+
+n = 8
+k = 3
+n = 2 ^ k
+n = 8
+
+8 => 2 * 2 * 2 = 2 ^ 3  = 3
+
+n = 8
+O(n) => O(8)
+O(logn) => O(3)
+
+n = 1023536
+O(n) = O(1023536)
+O(logn) = O(20)
+
+O(1)
+O(logn)
+O(n)
+O(nlogn) 
+O(n^2)
+O(n^2logn)
+O(n^3)
+
+
+Space Complexity 
+
+nums = [1,2,3] = O(3)
+[n1, .... n100] = O(100)
+[1,2,3......n] = O(n)
+
+[
+    [1,2,3], - O(3)
+    [2,3,4] - O(3)
+    [89,90,8]
+]
+OSC: 
+(3 x 3)
+
+Spy Number: check if the sum of digits equals the product of digits for a given number.
+
+
+132
+
+sum = 6
+product = 6
+sum == product
+
+132 % 10 = 2
+253673 % 10 = 3
+
+132 => 132 % 10 = 2
+132 / 10 = 13 % 10 = 3
+13 / 10 = 1 % 10 = 1
+
+
+print spy numbers upto N
+
+N = 10
+
+
+Given a number tell me whether the number is a magic number or not 
+
+
