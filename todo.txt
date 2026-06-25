@@ -258,3 +258,21 @@ Given a number tell me whether the number is strong number or not
                         15  24  25  20   7
                         14  23  22  21   8
                         13  12  11  10   9
+
+
+
+Add two numbers represented as linked lists where digits are stored in reverse order.
+i/p
+List 1:
+2 → 4 → 3
+List 2:
+5 → 6 → 4
+o/p 7 → 0 → 8
+
+i/p
+List 1:
+7 → 1 → 6
+List 2:
+5 → 9 → 2
+o/p
+2 → 1 → 9
