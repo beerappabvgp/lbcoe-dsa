@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adjacency Matrix Graph Builder</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            color: #334155;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 16px 20px;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #dc2626;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: #f1f5f9;
+            cursor: crosshair;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .node {
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+        .node circle {
+            fill: #8b5cf6;
+            stroke: #7c3aed;
+            stroke-width: 2;
+        }
+        .node:hover circle {
+            fill: #a78bfa;
+        }
+        .node text {
+            fill: white;
+            font-weight: bold;
+            font-size: 14px;
+            pointer-events: none;
+            user-select: none;
+        }
+        .edge {
+            stroke: #94a3b8;
+            stroke-width: 3;
+        }
+        .temp-edge {
+            stroke: #cbd5e1;
+            stroke-width: 3;
+            stroke-dasharray: 5,5;
+        }
+        .output-panel {
+            padding: 20px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .output-panel h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #475569;
+            align-self: flex-start;
+        }
+        .matrix-table {
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        .matrix-table th, .matrix-table td {
+            width: 35px;
+            height: 35px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+        }
+        .matrix-table th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: bold;
+        }
+        .matrix-table .header-cell {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+        .cell-zero {
+            color: #94a3b8;
+        }
+        .cell-one {
+            color: #16a34a;
+            font-weight: bold;
+            background-color: #f0fdf4;
+        }
+        .instructions {
+            padding: 12px 20px;
+            background: #f3e8ff;
+            color: #6b21a8;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #e9d5ff;
+        }
+        .empty-state {
+            color: #94a3b8;
+            font-style: italic;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Adjacency Matrix Builder (2D Array)</h1>
+        <button onclick="clearGraph()">Clear Graph</button>
+    </div>
+    
+    <div class="instructions">
+        <strong>How to use:</strong> 1. Click the canvas to add Nodes. 2. Drag between nodes to connect them. Watch the 2D array below expand!
+    </div>
+
+    <div class="canvas-container">
+        <svg id="graphCanvas"></svg>
+    </div>
+
+    <div class="output-panel">
+        <h2>Live 2D Array Representation (int[][])</h2>
+        <div id="matrixContainer">
+            <div class="empty-state">Map is empty. Add nodes to build the matrix!</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const svg = document.getElementById('graphCanvas');
+    const matrixContainer = document.getElementById('matrixContainer');
+
+    let nodes = [];
+    let edges = [];
+    let nextId = 0;
+
+    let isDrawing = false;
+    let startNode = null;
+    let tempLine = null;
+
+    svg.addEventListener('mousedown', handleSvgMouseDown);
+    svg.addEventListener('mousemove', handleSvgMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    function handleSvgMouseDown(e) {
+        if (e.target === svg) {
+            const rect = svg.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            addNode(x, y);
+        }
+    }
+
+    function startEdge(e, node) {
+        e.stopPropagation();
+        isDrawing = true;
+        startNode = node;
+
+        tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tempLine.setAttribute('class', 'temp-edge');
+        tempLine.setAttribute('x1', node.x);
+        tempLine.setAttribute('y1', node.y);
+        tempLine.setAttribute('x2', node.x);
+        tempLine.setAttribute('y2', node.y);
+        svg.insertBefore(tempLine, svg.firstChild); 
+    }
+
+    function handleSvgMouseMove(e) {
+        if (!isDrawing || !tempLine) return;
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        tempLine.setAttribute('x2', x);
+        tempLine.setAttribute('y2', y);
+    }
+
+    function handleMouseUp(e) {
+        if (isDrawing) {
+            isDrawing = false;
+            if (tempLine) {
+                tempLine.remove();
+                tempLine = null;
+            }
+            startNode = null;
+        }
+    }
+
+    function finishEdge(e, targetNode) {
+        e.stopPropagation();
+        if (isDrawing && startNode && startNode.id !== targetNode.id) {
+            const edgeExists = edges.some(edge => 
+                (edge.source.id === startNode.id && edge.target.id === targetNode.id) ||
+                (edge.source.id === targetNode.id && edge.target.id === startNode.id)
+            );
+
+            if (!edgeExists) {
+                addEdge(startNode, targetNode);
+            }
+        }
+        
+        isDrawing = false;
+        if (tempLine) {
+            tempLine.remove();
+            tempLine = null;
+        }
+        startNode = null;
+    }
+
+    function addNode(x, y) {
+        const node = { id: nextId++, x: x, y: y };
+        nodes.push(node);
+        renderNode(node);
+        updateMatrix();
+    }
+
+    function addEdge(source, target) {
+        const edge = { source: source, target: target };
+        edges.push(edge);
+        renderEdge(edge);
+        updateMatrix();
+    }
+
+    function renderNode(node) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'node');
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('r', '20');
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'central');
+        text.textContent = node.id;
+
+        g.appendChild(circle);
+        g.appendChild(text);
+
+        g.addEventListener('mousedown', (e) => startEdge(e, node));
+        g.addEventListener('mouseup', (e) => finishEdge(e, node));
+
+        svg.appendChild(g);
+    }
+
+    function renderEdge(edge) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('class', 'edge');
+        line.setAttribute('x1', edge.source.x);
+        line.setAttribute('y1', edge.source.y);
+        line.setAttribute('x2', edge.target.x);
+        line.setAttribute('y2', edge.target.y);
+        
+        const firstNode = svg.querySelector('.node');
+        if (firstNode) {
+            svg.insertBefore(line, firstNode);
+        } else {
+            svg.appendChild(line);
+        }
+    }
+
+    function updateMatrix() {
+        if (nodes.length === 0) {
+            matrixContainer.innerHTML = '<div class="empty-state">Map is empty. Add nodes to build the matrix!</div>';
+            return;
+        }
+
+        const size = nodes.length;
+        
+        // Create an NxN 2D array filled with 0s
+        let matrix = Array(size).fill().map(() => Array(size).fill(0));
+
+        // Populate the 1s for edges
+        edges.forEach(edge => {
+            matrix[edge.source.id][edge.target.id] = 1;
+            matrix[edge.target.id][edge.source.id] = 1; // Undirected
+        });
+
+        // Build the HTML Table
+        let tableHTML = '<table class="matrix-table">';
+        
+        // Header Row (Columns)
+        tableHTML += '<tr><th class="header-cell"></th>';
+        for (let i = 0; i < size; i++) {
+            tableHTML += `<th class="header-cell">${i}</th>`;
+        }
+        tableHTML += '</tr>';
+
+        // Data Rows
+        for (let row = 0; row < size; row++) {
+            tableHTML += `<tr><th class="header-cell">${row}</th>`;
+            for (let col = 0; col < size; col++) {
+                const val = matrix[row][col];
+                const cellClass = val === 1 ? 'cell-one' : 'cell-zero';
+                tableHTML += `<td class="${cellClass}">${val}</td>`;
+            }
+            tableHTML += '</tr>';
+        }
+
+        tableHTML += '</table>';
+        matrixContainer.innerHTML = tableHTML;
+    }
+
+    function clearGraph() {
+        svg.innerHTML = '';
+        nodes = [];
+        edges = [];
+        nextId = 0;
+        updateMatrix();
+    }
+</script>
+
+</body>
+</html>

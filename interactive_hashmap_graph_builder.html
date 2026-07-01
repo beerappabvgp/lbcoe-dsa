@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HashMap Graph Builder</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            color: #334155;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 16px 20px;
+            background: #1e293b;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+        button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #dc2626;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #f1f5f9;
+            cursor: crosshair;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        .node {
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+        .node circle {
+            fill: #3b82f6;
+            stroke: #2563eb;
+            stroke-width: 2;
+        }
+        .node:hover circle {
+            fill: #60a5fa;
+        }
+        .node text {
+            fill: white;
+            font-weight: bold;
+            font-size: 14px;
+            pointer-events: none;
+            user-select: none;
+        }
+        .edge {
+            stroke: #94a3b8;
+            stroke-width: 3;
+        }
+        .temp-edge {
+            stroke: #cbd5e1;
+            stroke-width: 3;
+            stroke-dasharray: 5,5;
+        }
+        .output-panel {
+            padding: 20px;
+            background: #ffffff;
+        }
+        .output-panel h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #475569;
+        }
+        pre {
+            background: #1e293b;
+            color: #a7f3d0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 1.05rem;
+            line-height: 1.5;
+        }
+        .instructions {
+            padding: 12px 20px;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #bae6fd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>HashMap Graph Builder (Numbers)</h1>
+        <button onclick="clearGraph()">Clear Graph</button>
+    </div>
+    
+    <div class="instructions">
+        <strong>How to use:</strong> 1. Click anywhere on the gray canvas to add a Node. 2. Drag from one node to another to draw an Edge.
+    </div>
+
+    <div class="canvas-container">
+        <svg id="graphCanvas"></svg>
+    </div>
+
+    <div class="output-panel">
+        <h2>Live HashMap (Adjacency List) Representation</h2>
+        <pre id="hashMapOutput">Map is empty. Add some nodes!</pre>
+    </div>
+</div>
+
+<script>
+    const svg = document.getElementById('graphCanvas');
+    const output = document.getElementById('hashMapOutput');
+
+    let nodes = [];
+    let edges = [];
+    let nextId = 0;
+
+    // Interaction states
+    let isDrawing = false;
+    let startNode = null;
+    let tempLine = null;
+
+    // Initialize SVG interactions
+    svg.addEventListener('mousedown', handleSvgMouseDown);
+    svg.addEventListener('mousemove', handleSvgMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    function handleSvgMouseDown(e) {
+        // If clicking on an empty space, create a new node
+        if (e.target === svg) {
+            const rect = svg.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            addNode(x, y);
+        }
+    }
+
+    function startEdge(e, node) {
+        e.stopPropagation();
+        isDrawing = true;
+        startNode = node;
+
+        // Create temporary line for dragging preview
+        tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        tempLine.setAttribute('class', 'temp-edge');
+        tempLine.setAttribute('x1', node.x);
+        tempLine.setAttribute('y1', node.y);
+        tempLine.setAttribute('x2', node.x);
+        tempLine.setAttribute('y2', node.y);
+        svg.insertBefore(tempLine, svg.firstChild); // Put line behind nodes
+    }
+
+    function handleSvgMouseMove(e) {
+        if (!isDrawing || !tempLine) return;
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        tempLine.setAttribute('x2', x);
+        tempLine.setAttribute('y2', y);
+    }
+
+    function handleMouseUp(e) {
+        if (isDrawing) {
+            isDrawing = false;
+            if (tempLine) {
+                tempLine.remove();
+                tempLine = null;
+            }
+            startNode = null;
+        }
+    }
+
+    function finishEdge(e, targetNode) {
+        e.stopPropagation();
+        if (isDrawing && startNode && startNode.id !== targetNode.id) {
+            // Check if edge already exists
+            const edgeExists = edges.some(edge => 
+                (edge.source.id === startNode.id && edge.target.id === targetNode.id) ||
+                (edge.source.id === targetNode.id && edge.target.id === startNode.id)
+            );
+
+            if (!edgeExists) {
+                addEdge(startNode, targetNode);
+            }
+        }
+        
+        isDrawing = false;
+        if (tempLine) {
+            tempLine.remove();
+            tempLine = null;
+        }
+        startNode = null;
+    }
+
+    function addNode(x, y) {
+        const node = { id: nextId++, x: x, y: y };
+        nodes.push(node);
+        renderNode(node);
+        updateHashMap();
+    }
+
+    function addEdge(source, target) {
+        const edge = { source: source, target: target };
+        edges.push(edge);
+        renderEdge(edge);
+        updateHashMap();
+    }
+
+    function renderNode(node) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'node');
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+        // Node circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('r', '20');
+
+        // Node label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'central');
+        text.textContent = node.id;
+
+        g.appendChild(circle);
+        g.appendChild(text);
+
+        // Add events for edge creation
+        g.addEventListener('mousedown', (e) => startEdge(e, node));
+        g.addEventListener('mouseup', (e) => finishEdge(e, node));
+
+        svg.appendChild(g);
+    }
+
+    function renderEdge(edge) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('class', 'edge');
+        line.setAttribute('x1', edge.source.x);
+        line.setAttribute('y1', edge.source.y);
+        line.setAttribute('x2', edge.target.x);
+        line.setAttribute('y2', edge.target.y);
+        
+        // Insert edge before the first node group so lines go behind circles
+        const firstNode = svg.querySelector('.node');
+        if (firstNode) {
+            svg.insertBefore(line, firstNode);
+        } else {
+            svg.appendChild(line);
+        }
+    }
+
+    function updateHashMap() {
+        if (nodes.length === 0) {
+            output.textContent = "Map is empty. Add some nodes!";
+            return;
+        }
+
+        // Build adjacency list object
+        const adjList = {};
+        
+        // Initialize all nodes with empty arrays
+        nodes.forEach(node => {
+            adjList[node.id] = [];
+        });
+
+        // Populate edges
+        edges.forEach(edge => {
+            adjList[edge.source.id].push(edge.target.id);
+            adjList[edge.target.id].push(edge.source.id); // Undirected graph
+        });
+
+        // Format output to look like Java map printing
+        let outputStr = "HashMap<Integer, List<Integer>> adjList = new HashMap<>();\n\n";
+        
+        for (const [key, neighbors] of Object.entries(adjList)) {
+            // Sort neighbors for cleaner reading
+            neighbors.sort((a, b) => a - b);
+            outputStr += `Node ${key} => [${neighbors.join(', ')}]\n`;
+        }
+
+        output.textContent = outputStr;
+    }
+
+    function clearGraph() {
+        svg.innerHTML = '';
+        nodes = [];
+        edges = [];
+        nextId = 0;
+        updateHashMap();
+    }
+</script>
+
+</body>
+</html>
